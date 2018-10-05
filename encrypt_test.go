@@ -11,12 +11,12 @@ func Test_EncryptManager(t *testing.T) {
 	m := NewEncryptManager("helloworld")
 
 	// open a sample file
-	b, err := os.Open("../README.md")
+	b, err := os.Open("README.md")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	original, err := ioutil.ReadFile("../README.md")
+	original, err := ioutil.ReadFile("README.md")
 	if err != nil {
 		t.Error(err)
 		return
