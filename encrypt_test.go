@@ -2,48 +2,65 @@ package crypto
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
-	"os"
+	"reflect"
 	"testing"
 )
 
 func Test_EncryptManager(t *testing.T) {
-	m := NewEncryptManager("helloworld")
-
 	// open a sample file
-	b, err := os.Open("README.md")
-	if err != nil {
-		t.Error(err)
-		return
-	}
 	original, err := ioutil.ReadFile("README.md")
 	if err != nil {
-		t.Error(err)
+		t.Errorf("setup failed: %s", err)
 		return
 	}
 
-	// encrypt file
-	encrypted, err := m.Encrypt(b)
-	if err != nil {
-		t.Error(err)
-		return
+	type fields struct {
+		passphrase string
 	}
-
-	// should not be same as original
-	if string(original) == string(encrypted) {
-		t.Error("encryption did not work")
+	type args struct {
+		r io.Reader
 	}
-
-	// decrypt encrypted bytes
-	decrypted, err := m.Decrypt(bytes.NewReader(encrypted))
-	if err != nil {
-		t.Error(err)
-		return
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{"valid passphrase", fields{"helloworld"}, args{bytes.NewReader(original)}, original, false},
+		{"valid short passphrase", fields{"a"}, args{bytes.NewReader(original)}, original, false},
+		{"invalid reader", fields{"helloworld"}, args{nil}, original, true},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &EncryptManager{passphrase: []byte(tt.fields.passphrase)}
 
-	// compare with original
-	if string(original) != string(decrypted) {
-		t.Errorf("decrypt failed:\nENCRYPTED=============\n %s DECRYPTED=========\n %s",
-			string(original), string(decrypted))
+			// encrypt
+			encrypted, err := e.Encrypt(tt.args.r)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("EncryptManager.Encrypt() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err != nil {
+				return
+			}
+
+			// decrypt
+			decrypted, err := e.Decrypt(bytes.NewReader(encrypted))
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if err != nil {
+				return
+			}
+
+			// check
+			if !reflect.DeepEqual(decrypted, tt.want) {
+				t.Errorf("EncryptManager.Encrypt() = %v, want %v", decrypted, tt.want)
+			}
+		})
 	}
 }
