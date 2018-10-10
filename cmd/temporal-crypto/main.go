@@ -13,8 +13,9 @@ import (
 
 var commands = map[string]cmd.Cmd{
 	"decrypt": cmd.Cmd{
-		Blurb:       "decrypt file encrypted by Temporal",
-		Description: "Decrypts given files using passphrase set in TEMPORAL_PASSPHRASE. Decrypted files are saved in ./<filename>.decrypted",
+		Blurb: "decrypt file encrypted by Temporal",
+		Description: `Decrypts given files using passphrase set in TEMPORAL_PASSPHRASE. Decrypted 
+		files are saved in ./<filename>.decrypted. Multiple files can be provided as arguments.`,
 		Action: func(cfg config.TemporalConfig, args map[string]string) {
 			p := os.Getenv("TEMPORAL_PASSPHRASE")
 			if p == "" {
@@ -38,8 +39,9 @@ var commands = map[string]cmd.Cmd{
 				}
 
 				if err = ioutil.WriteFile(
-					filepath.Join(dir, filepath.Base(os.Args[i])),
-					out, 0644); err != nil {
+					filepath.Join(dir, filepath.Base(os.Args[i]))+".decrypted",
+					out, 0644,
+				); err != nil {
 					log.Fatal(err)
 				}
 			}
