@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,18 +12,25 @@ import (
 	"github.com/RTradeLtd/crypto"
 )
 
+var (
+	pwd = flag.String("passphrase", "", "passphrase to decrypt file with")
+)
+
 var commands = map[string]cmd.Cmd{
 	"decrypt": cmd.Cmd{
 		Blurb: "decrypt file encrypted by Temporal",
-		Description: `Decrypts given files using passphrase set in TEMPORAL_PASSPHRASE. Decrypted 
-		files are saved in ./<filename>.decrypted. Multiple files can be provided as arguments.`,
+		Description: `Decrypts given files using passphrase set in the '--passphrase' flag. Decrypted 
+files are saved in './<filename>.decrypted'. Multiple files can be provided as 
+arguments. For example:
+
+	temporal-crypto --passphrase=temporal decrypt file1.txt file2.txt
+`,
 		Action: func(cfg config.TemporalConfig, args map[string]string) {
-			p := os.Getenv("TEMPORAL_PASSPHRASE")
-			if p == "" {
-				log.Fatal("no passphrase provided in TEMPORAL_PASSPHRASE")
+			if *pwd == "" {
+				log.Fatal("no passphrase provided - use the '--passphrase' flag")
 			}
 
-			decrypt := crypto.NewEncryptManager(p)
+			decrypt := crypto.NewEncryptManager(*pwd)
 			for i := 2; i < len(os.Args); i++ {
 				f, err := os.Open(os.Args[i])
 				if err != nil {
@@ -90,5 +98,7 @@ func main() {
 		ExecName: "temporal-crypto",
 		Desc:     "Temporal's object encryption utility",
 	})
-	os.Exit(app.Run(config.TemporalConfig{}, nil, os.Args[1:]))
+
+	flag.Parse()
+	os.Exit(app.Run(config.TemporalConfig{}, nil, flag.Args()))
 }
