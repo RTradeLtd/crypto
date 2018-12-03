@@ -17,7 +17,7 @@ var (
 )
 
 var commands = map[string]cmd.Cmd{
-	"decrypt": cmd.Cmd{
+	"decrypt": {
 		Blurb: "decrypt file encrypted by Temporal",
 		Description: `Decrypts given files using passphrase set in the '--passphrase' flag. Decrypted 
 files are saved in './<filename>.decrypted'. Multiple files can be provided as 
@@ -55,7 +55,7 @@ arguments. For example:
 			}
 		},
 	},
-	"encrypt": cmd.Cmd{
+	"encrypt": {
 		Blurb: "encrypt file using Temporal's encryption format",
 		Description: `Encrypts given files using passphrase set in TEMPORAL_PASSPHRASE. Encrypted 
 		files are saved in ./<filename>.encrypted. Multiple files can be provided as arguments.`,
