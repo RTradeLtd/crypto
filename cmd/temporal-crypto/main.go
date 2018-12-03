@@ -34,23 +34,23 @@ arguments. For example:
 			for i := 2; i < len(os.Args); i++ {
 				f, err := os.Open(os.Args[i])
 				if err != nil {
-					log.Fatal(err)
+					fatal(err)
 				}
 				out, err := decrypt.Decrypt(f)
 				if err != nil {
-					log.Fatal(err)
+					fatal(err)
 				}
 
 				dir, err := os.Getwd()
 				if err != nil {
-					log.Fatal(err)
+					fatal(err)
 				}
 
 				if err = ioutil.WriteFile(
 					filepath.Join(dir, filepath.Base(os.Args[i]))+".decrypted",
 					out, 0644,
 				); err != nil {
-					log.Fatal(err)
+					fatal(err)
 				}
 			}
 		},
@@ -69,23 +69,23 @@ arguments. For example:
 			for i := 2; i < len(os.Args); i++ {
 				f, err := os.Open(os.Args[i])
 				if err != nil {
-					log.Fatal(err)
+					fatal(err)
 				}
 				out, err := decrypt.Encrypt(f)
 				if err != nil {
-					log.Fatal(err)
+					fatal(err)
 				}
 
 				dir, err := os.Getwd()
 				if err != nil {
-					log.Fatal(err)
+					fatal(err)
 				}
 
 				if err = ioutil.WriteFile(
 					filepath.Join(dir, filepath.Base(os.Args[i]))+".encrypted",
 					out, 0644,
 				); err != nil {
-					log.Fatal(err)
+					fatal(err)
 				}
 			}
 		},
