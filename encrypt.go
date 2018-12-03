@@ -38,7 +38,7 @@ func (e *EncryptManager) Encrypt(r io.Reader) ([]byte, error) {
 	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
 		return nil, err
 	}
-	key := pbkdf2.Key([]byte(e.passphrase), salt, 4096, keylen, sha256.New)
+	key := pbkdf2.Key(e.passphrase, salt, 4096, keylen, sha256.New)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (e *EncryptManager) Decrypt(r io.Reader) ([]byte, error) {
 	raw = raw[:len(raw)-saltlen]
 
 	// generate cipher
-	key := pbkdf2.Key([]byte(e.passphrase), salt, 4096, keylen, sha256.New)
+	key := pbkdf2.Key(e.passphrase, salt, 4096, keylen, sha256.New)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
