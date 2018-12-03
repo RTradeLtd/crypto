@@ -7,3 +7,9 @@ It is also available as a command line application:
 ```sh
 $> go get github.com/RTradeLtd/crypto/cmd/temporal-crypto
 ```
+
+You can then use the tool by calling `temporal-crypto`:
+
+```sh
+$> temporal-crypto help
+```
