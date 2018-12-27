@@ -2,11 +2,26 @@ package crypto
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"reflect"
 	"testing"
 )
+
+func Test_EncryptManager_AES256_GCM(t *testing.T) {
+	original, err := ioutil.ReadFile("README.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := NewEncryptManager("passphrase")
+	_, passphrase, err := e.EncryptGCM(bytes.NewReader(original))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("passphrase", hex.EncodeToString(passphrase))
+}
 
 func Test_EncryptManager_AES256_CFB(t *testing.T) {
 	// open a sample file

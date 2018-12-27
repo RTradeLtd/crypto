@@ -35,7 +35,7 @@ func (e *EncryptManager) EncryptGCM(r io.Reader) ([]byte, []byte, error) {
 	if _, err := rand.Read(cipherKeyBytes); err != nil {
 		return nil, nil, err
 	}
-	nonce := make([]byte, 24)
+	nonce := make([]byte, 12)
 	if _, err := rand.Read(nonce); err != nil {
 		return nil, nil, err
 	}

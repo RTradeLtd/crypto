@@ -17,7 +17,7 @@ var (
 )
 
 var commands = map[string]cmd.Cmd{
-	"decrypt": {
+	"decrypt-cfb": {
 		Blurb: "decrypt file encrypted by Temporal",
 		Description: `Decrypts given files using passphrase set in the '--passphrase' flag. Decrypted 
 files are saved in './<filename>.decrypted'. Multiple files can be provided as 
@@ -36,7 +36,7 @@ arguments. For example:
 				if err != nil {
 					fatal(err)
 				}
-				out, err := decrypt.Decrypt(f)
+				out, err := decrypt.DecryptCFB(f)
 				if err != nil {
 					fatal(err)
 				}
@@ -55,7 +55,7 @@ arguments. For example:
 			}
 		},
 	},
-	"encrypt": {
+	"encrypt-cfb": {
 		Blurb: "encrypt file using Temporal's encryption format",
 		Description: `Encrypts given files using passphrase set in TEMPORAL_PASSPHRASE. Encrypted 
 		files are saved in ./<filename>.encrypted. Multiple files can be provided as arguments.`,
@@ -71,7 +71,7 @@ arguments. For example:
 				if err != nil {
 					fatal(err)
 				}
-				out, err := decrypt.Encrypt(f)
+				out, err := decrypt.EncryptCFB(f)
 				if err != nil {
 					fatal(err)
 				}
