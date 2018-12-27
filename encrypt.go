@@ -27,8 +27,36 @@ func NewEncryptManager(passphrase string) *EncryptManager {
 	return &EncryptManager{[]byte(passphrase)}
 }
 
-// Encrypt encrypts given io.Reader, returning the resultant bytes
-func (e *EncryptManager) Encrypt(r io.Reader) ([]byte, error) {
+// EncryptGCM encrypts given io.Reader using AES256-GCM
+// the resultant encrypted bytes are returned, and the randomly generate cipher key
+func (e *EncryptManager) EncryptGCM(r io.Reader) ([]byte, []byte, error) {
+	// create a 32bit cipher key allowing usage for AES256-GCM
+	cipherKeyBytes := make([]byte, 32)
+	if _, err := rand.Read(cipherKeyBytes); err != nil {
+		return nil, nil, err
+	}
+	nonce := make([]byte, 24)
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, nil, err
+	}
+	block, err := aes.NewCipher(cipherKeyBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, nil, err
+	}
+	dataToEncrypt, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	return aesGCM.Seal(nil, nonce, dataToEncrypt, nil), cipherKeyBytes, nil
+}
+
+// EncryptCFB encrypts given io.Reader using AES256CFB
+// the resultant bytes are returned
+func (e *EncryptManager) EncryptCFB(r io.Reader) ([]byte, error) {
 	if r == nil {
 		return nil, errors.New("invalid content provided")
 	}
@@ -68,7 +96,7 @@ func (e *EncryptManager) Encrypt(r io.Reader) ([]byte, error) {
 }
 
 // Decrypt decrypts given io.Reader, returning the decrypted bytes
-func (e *EncryptManager) Decrypt(r io.Reader) ([]byte, error) {
+func (e *EncryptManager) DecryptCFB(r io.Reader) ([]byte, error) {
 	if r == nil {
 		return nil, errors.New("invalid content provided")
 	}

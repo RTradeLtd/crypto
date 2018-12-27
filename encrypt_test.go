@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func Test_EncryptManager(t *testing.T) {
+func Test_EncryptManager_AES256_CFB(t *testing.T) {
 	// open a sample file
 	original, err := ioutil.ReadFile("README.md")
 	if err != nil {
@@ -38,9 +38,9 @@ func Test_EncryptManager(t *testing.T) {
 			e := NewEncryptManager(tt.fields.passphrase)
 
 			// encrypt
-			encrypted, err := e.Encrypt(tt.args.r)
+			encrypted, err := e.EncryptCFB(tt.args.r)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("EncryptManager.Encrypt() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("EncryptManager.EncryptCFB() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if err != nil {
@@ -48,7 +48,7 @@ func Test_EncryptManager(t *testing.T) {
 			}
 
 			// decrypt
-			decrypted, err := e.Decrypt(bytes.NewReader(encrypted))
+			decrypted, err := e.DecryptCFB(bytes.NewReader(encrypted))
 			if err != nil {
 				t.Error(err)
 				return
