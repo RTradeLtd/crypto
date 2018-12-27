@@ -125,7 +125,8 @@ func (e *EncryptManager) EncryptCFB(r io.Reader) ([]byte, error) {
 	return encrypted, nil
 }
 
-// Decrypt decrypts given io.Reader, returning the decrypted bytes
+// DecryptCFB decrypts given io.Reader which was encrypted using AES256-CFB
+// the resulting decrypt bytes are returned
 func (e *EncryptManager) DecryptCFB(r io.Reader) ([]byte, error) {
 	if r == nil {
 		return nil, errors.New("invalid content provided")
