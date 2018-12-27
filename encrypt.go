@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -28,30 +29,59 @@ func NewEncryptManager(passphrase string) *EncryptManager {
 }
 
 // EncryptGCM encrypts given io.Reader using AES256-GCM
-// the resultant encrypted bytes are returned, and the randomly generate cipher key
-func (e *EncryptManager) EncryptGCM(r io.Reader) ([]byte, []byte, error) {
+// the resultant encrypted bytes, nonce, and cipher are returned
+func (e *EncryptManager) EncryptGCM(r io.Reader) ([]byte, []byte, []byte, error) {
 	// create a 32bit cipher key allowing usage for AES256-GCM
 	cipherKeyBytes := make([]byte, 32)
 	if _, err := rand.Read(cipherKeyBytes); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	nonce := make([]byte, 12)
 	if _, err := rand.Read(nonce); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	block, err := aes.NewCipher(cipherKeyBytes)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	dataToEncrypt, err := ioutil.ReadAll(r)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return aesGCM.Seal(nil, nonce, dataToEncrypt, nil), cipherKeyBytes, nil
+	return aesGCM.Seal(nil, nonce, dataToEncrypt, nil), nonce, cipherKeyBytes, nil
+}
+
+// DecryptGCM is used to decrypt the given io.Reader using a specified key and nonce
+// the key and nonce are expected to be in the format of hex.EncodeToString
+func (e *EncryptManager) DecryptGCM(r io.Reader, key, nonce string) ([]byte, error) {
+	// decode the key
+	decodedKey, err := hex.DecodeString(key)
+	if err != nil {
+		return nil, err
+	}
+	// decode the nonce
+	decodedNonce, err := hex.DecodeString(nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := aes.NewCipher(decodedKey)
+	if err != nil {
+		return nil, err
+	}
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+	encryptedData, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	return aesGCM.Open(nil, decodedNonce, encryptedData, nil)
 }
 
 // EncryptCFB encrypts given io.Reader using AES256CFB
