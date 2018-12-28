@@ -28,7 +28,7 @@ Workflow (Encryption): `NewEncryptManager -> EncryptCFB`
 Workflow (Decryption): `NewEncryptManager -> DecryptCFB`
 ### AES256-GCM
 
-As a more secure encryption method, we allow the usage of AES256-GCM. For this, we do not let the user decide the cipherkey, and nonce. Like when using AES256-CFB, we leverage `read.Read` to securely generate a random nonce of 24byte, and cipherkey of 32byte, allowing for usage of AES256.
+As a more secure encryption method, we allow the usage of AES256-GCM. For this, we do not let the user decide the cipherkey, and nonce. Like when using AES256-CFB, we leverage `read.Read` to securely generate a random nonce of 24byte, and cipherkey of 32byte, allowing for usage of AES256. Please note that the nonce selection of 24byte as is non-standard. Standad/default nonce is 12byte
 
 As this is intended to be used by Temporal's API, naturally one may be concerned about what we do with the randomly generated cipherkey and nonce. In order to protect the users data, we take a passphrase and use that combined with our AES256-CFB encryption mechanism to encrypt the cipherkey, and nonce.
 
