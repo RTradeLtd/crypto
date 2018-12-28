@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -117,7 +118,7 @@ func (e *EncryptManager) EncryptCFB(r io.Reader) ([]byte, error) {
 	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
 		return nil, err
 	}
-	key := pbkdf2.Key(e.passphrase, salt, 4096, keylen, sha256.New)
+	key := pbkdf2.Key(e.passphrase, salt, 4096, keylen, sha512.New)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
