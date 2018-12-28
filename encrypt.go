@@ -16,6 +16,10 @@ import (
 )
 
 const (
+	// if these settings take too long on your server or workstation feel free to modify
+	// however please keep in mind these are the settings that Temporal uses.
+	// thus if you want to decrypt a file which was encrypted by our Temporal node, you must
+	// ensure that the settings match as foillows: keylen = 32, saltlen = 32, nonceSize = 24
 	keylen    = 32
 	saltlen   = 32
 	nonceSize = 24
