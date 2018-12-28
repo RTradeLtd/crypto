@@ -42,6 +42,9 @@ func Test_EncryptManager_AES256_GCM(t *testing.T) {
 	}
 	// these are used to ensure that we don't detect
 	// reused nonces and ciphers across multiple runs
+	// which use the same parameters. If done properly,
+	// despite using multiple of the same values
+	// we should not detect the same nonces and ciphers
 	var (
 		nonces        [][]byte
 		ciphers       [][]byte
@@ -97,7 +100,8 @@ func Test_EncryptManager_AES256_GCM(t *testing.T) {
 			}
 		})
 	}
-	// parse through nonces to ensure we don't have duplicates
+	// parse through nonces and ciphers to ensure we don't have duplicates
+	// this would indicate that RNG was insecure
 	found := make(map[string]bool)
 	for i, v := range nonces {
 		if found[hex.EncodeToString(v)] {
