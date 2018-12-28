@@ -117,6 +117,7 @@ func (e *EncryptManager) EncryptCFB(r io.Reader) ([]byte, error) {
 	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
 		return nil, err
 	}
+	// using sha512 is safer than sha256, but should also be faster on 64bit platforms
 	key := pbkdf2.Key(e.passphrase, salt, 4096, keylen, sha512.New)
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -164,6 +165,7 @@ func (e *EncryptManager) DecryptCFB(r io.Reader) ([]byte, error) {
 	raw = raw[:len(raw)-saltlen]
 
 	// generate cipher
+	// using sha512 is safer than sha256, but should also be faster on 64bit platforms
 	key := pbkdf2.Key(e.passphrase, salt, 4096, keylen, sha512.New)
 	block, err := aes.NewCipher(key)
 	if err != nil {
