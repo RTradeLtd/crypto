@@ -4,7 +4,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
 	"errors"
@@ -165,7 +164,7 @@ func (e *EncryptManager) DecryptCFB(r io.Reader) ([]byte, error) {
 	raw = raw[:len(raw)-saltlen]
 
 	// generate cipher
-	key := pbkdf2.Key(e.passphrase, salt, 4096, keylen, sha256.New)
+	key := pbkdf2.Key(e.passphrase, salt, 4096, keylen, sha512.New)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
