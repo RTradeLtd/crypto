@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	keylen  = 32
-	saltlen = 32
+	keylen    = 32
+	saltlen   = 32
+	nonceSize = 24
 )
 
 // EncryptManager handles file encryption and decryption
@@ -41,7 +42,7 @@ func (e *EncryptManager) EncryptGCM(r io.Reader) ([]byte, []byte, []byte, error)
 	if _, err := rand.Read(cipherKeyBytes); err != nil {
 		return nil, nil, nil, err
 	}
-	nonce := make([]byte, 12)
+	nonce := make([]byte, nonceSize)
 	if _, err := rand.Read(nonce); err != nil {
 		return nil, nil, nil, err
 	}
@@ -49,7 +50,7 @@ func (e *EncryptManager) EncryptGCM(r io.Reader) ([]byte, []byte, []byte, error)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	aesGCM, err := cipher.NewGCM(block)
+	aesGCM, err := cipher.NewGCMWithNonceSize(block, 24)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -94,7 +95,7 @@ func (e *EncryptManager) DecryptGCM(r io.Reader, key, nonce string) ([]byte, err
 	if err != nil {
 		return nil, err
 	}
-	aesGCM, err := cipher.NewGCM(block)
+	aesGCM, err := cipher.NewGCMWithNonceSize(block, nonceSize)
 	if err != nil {
 		return nil, err
 	}
