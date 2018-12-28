@@ -17,7 +17,7 @@ import (
 
 const (
 	keylen  = 32
-	saltlen = 8
+	saltlen = 32
 )
 
 // EncryptManager handles file encryption and decryption
