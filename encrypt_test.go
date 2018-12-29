@@ -51,9 +51,9 @@ func Test_EncryptManager_AES256_GCM(t *testing.T) {
 	)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := NewEncryptManager(tt.fields.passphrase)
+			e := NewEncryptManager(tt.fields.passphrase, GCM, nil)
 			// encrypt
-			encryptData, err := e.Encrypt(tt.args.r, "AES256-GCM")
+			encryptedData, err := e.Encrypt(tt.args.r)
 			if (err != nil) != tt.wantEncryptErr {
 				t.Fatalf("Encrypt err = %v, wantErr %v", err, tt.wantEncryptErr)
 			}
@@ -61,34 +61,54 @@ func Test_EncryptManager_AES256_GCM(t *testing.T) {
 			if tt.wantDecryptErr {
 				return
 			}
-			// decrypt the encoded cipher+nonce data
-			decrypted, err := e.Decrypt(bytes.NewReader(encryptData["decryptData"]), nil)
-			if (err != nil) != tt.wantDecryptErr {
-				t.Fatalf("Decrypt err = %v, wantErr %v", err, tt.wantDecryptErr)
-			}
-			// parse output
-			decryptData := strings.Split(string(decrypted), "\n")
-			// grab hex encoded nonce
-			hexEncodedNonce := strings.Split(decryptData[0], "\t")[1]
-			// grab hex encoded cipher key
-			hexEncodedCipherKey := strings.Split(decryptData[1], "\t")[1]
 			// update nonces
-			nonceBytes, err := hex.DecodeString(hexEncodedNonce)
+			nonceBytes, err := hex.DecodeString(e.gcmDecryptParams.Nonce)
 			if err != nil {
 				t.Fatal(err)
 			}
 			nonces = append(nonces, nonceBytes)
 			// update ciphers
-			cipherBytes, err := hex.DecodeString(hexEncodedCipherKey)
+			cipherBytes, err := hex.DecodeString(e.gcmDecryptParams.CipherKey)
 			if err != nil {
 				t.Fatal(err)
 			}
 			ciphers = append(ciphers, cipherBytes)
 			// test decrypt of data
-			decrypted, err = e.Decrypt(bytes.NewReader(encryptData["encryptedData"]), &DecryptParams{
-				CipherKey: hexEncodedCipherKey,
-				Nonce:     hexEncodedNonce,
-			})
+			decrypted, err := e.Decrypt(bytes.NewReader(encryptedData))
+			if (err != nil) != tt.wantDecryptErr {
+				t.Fatalf("Decrypt err = %v, wantErr %v", err, tt.wantDecryptErr)
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			// check decrypted output
+			if !reflect.DeepEqual(decrypted, tt.want) {
+				t.Errorf("Encrypt = %v, want %v", decrypted, tt.want)
+			}
+			// retrieve gcm decryption data
+			encryptedGCMData, err := e.RetrieveGCMDecryptionParameters()
+			if (err != nil) != tt.wantEncryptErr {
+				t.Fatalf("RetrieveGCMDecryptionParameters err = %v, wantErr %v", err, tt.wantEncryptErr)
+			}
+			// further processing is only intended for non error expected test cases
+			if tt.wantEncryptErr {
+				return
+			}
+			// create our CFB decrypter to parse the gcm data
+			e = NewEncryptManager(tt.fields.passphrase, CFB, nil)
+			decryptedGCMData, err := e.Decrypt(bytes.NewReader(encryptedGCMData))
+			if err != nil {
+				t.Fatal(err)
+			}
+			// parse gcm decryption data
+			parsedGCMData := strings.Split(string(decryptedGCMData), "\n")
+			// retrieve hex encoded nonce
+			encodedNonce := strings.Split(parsedGCMData[0], "\t")[1]
+			// retrieve hex encoded cipher
+			encodedCipher := strings.Split(parsedGCMData[1], "\t")[1]
+			// reinstantiate EncryptManager to decrypt our GCM encrypted data
+			e = NewEncryptManager(tt.fields.passphrase, GCM, &GCMDecryptParams{CipherKey: encodedCipher, Nonce: encodedNonce})
+			decrypted, err = e.Decrypt(bytes.NewReader(encryptedData))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -113,6 +133,7 @@ func Test_EncryptManager_AES256_GCM(t *testing.T) {
 		found[hex.EncodeToString(ciphers[i])] = true
 	}
 }
+
 func Test_EncryptManager_AES256_CFB(t *testing.T) {
 	// open a sample file
 	original, err := ioutil.ReadFile("README.md")
@@ -140,24 +161,21 @@ func Test_EncryptManager_AES256_CFB(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := NewEncryptManager(tt.fields.passphrase)
+			e := NewEncryptManager(tt.fields.passphrase, CFB, nil)
 
 			// encrypt
-			encryptData, err := e.Encrypt(tt.args.r, "AES256-CFB")
+			dataToDecrypt, err := e.Encrypt(tt.args.r)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Encrypt error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			var dataToDecrypt []byte
 			// if expecting encryption error
 			// we need to fake some data to decrypt
 			if tt.wantErr {
 				dataToDecrypt = []byte("somesillyfakedatatotesthello12345678910111213141")
-			} else {
-				dataToDecrypt = encryptData["encryptedData"]
 			}
 			// decrypt
-			decrypted, err := e.Decrypt(bytes.NewReader(dataToDecrypt), nil)
+			decrypted, err := e.Decrypt(bytes.NewReader(dataToDecrypt))
 			if err != nil {
 				t.Fatal(err)
 			}

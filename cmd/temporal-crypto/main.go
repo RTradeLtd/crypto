@@ -30,13 +30,13 @@ arguments. For example:
 				log.Fatal("no passphrase provided - use the '--passphrase' flag")
 			}
 
-			decrypt := crypto.NewEncryptManager(*pwd)
+			decrypt := crypto.NewEncryptManager(*pwd, crypto.CFB, nil)
 			for i := 2; i < len(os.Args); i++ {
 				f, err := os.Open(os.Args[i])
 				if err != nil {
 					fatal(err)
 				}
-				out, err := decrypt.Decrypt(f, nil)
+				out, err := decrypt.Decrypt(f)
 				if err != nil {
 					fatal(err)
 				}
@@ -65,13 +65,13 @@ arguments. For example:
 				log.Fatal("no passphrase provided in TEMPORAL_PASSPHRASE")
 			}
 
-			decrypt := crypto.NewEncryptManager(p)
+			decrypt := crypto.NewEncryptManager(p, crypto.CFB, nil)
 			for i := 2; i < len(os.Args); i++ {
 				f, err := os.Open(os.Args[i])
 				if err != nil {
 					fatal(err)
 				}
-				out, err := decrypt.Encrypt(f, "aes256-cfb")
+				out, err := decrypt.Encrypt(f)
 				if err != nil {
 					fatal(err)
 				}
@@ -83,7 +83,7 @@ arguments. For example:
 
 				if err = ioutil.WriteFile(
 					filepath.Join(dir, filepath.Base(os.Args[i]))+".encrypted",
-					out["encryptedData"], 0644,
+					out, 0644,
 				); err != nil {
 					fatal(err)
 				}
