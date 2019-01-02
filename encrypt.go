@@ -49,28 +49,31 @@ type GCMDecryptParams struct {
 }
 
 // NewEncryptManager creates a new EncryptManager
-// If instantiating to use CFB encryption/decryption, gcmDecrypt params can be null
-// If instantiating to use GCM encryption, gcmDecrypt params can be null
-// If instantiating to use GCM decryption, gcmDecrypt params must not be null
-func NewEncryptManager(passphrase string, protocol Protocol, gcmDecryptParams *GCMDecryptParams) *EncryptManager {
+func NewEncryptManager(passphrase string) *EncryptManager {
 	return &EncryptManager{
-		passphrase:       []byte(passphrase),
-		gcmDecryptParams: gcmDecryptParams,
-		protocol:         protocol}
+		passphrase: []byte(passphrase)}
 }
 
-// Encrypt is used to handle encryption of objects, specifying the desired encryption method to be used
-// It returns a map, whose data depends on the encryption method being used
-//
-// For AES256-CFB, it is as follows:
-//		"encryptedData" -> byte slice containing the encrypted data
-//
-// for AES256-GCM, it is as follows:
-//		"encryptedData" -> byte slice containing the encrypted data
-//		"decryptData" -> is an encrypted, and formatted byte slice containing the cipher and nonceencMethod
-//
-// AES256-GCM mode uses the passphrase supplied when instantiating EncryptManager to
-// encrypt the randomly generated cipherKey, and nonce
+// WithGCM is used setup, and return EncryptManager for use with AES256-GCM
+// the params are expected to be unencrypted, and in hex encoded string format
+func (e *EncryptManager) WithGCM(params *GCMDecryptParams) *EncryptManager {
+	// set GCM protocol
+	e.protocol = GCM
+	// set decryption parameters
+	e.gcmDecryptParams = params
+	// return
+	return e
+}
+
+// WithCFB is used to setup, and return EncryptManager for use with AES256-CFB
+func (e *EncryptManager) WithCFB() *EncryptManager {
+	// set CFB protocol
+	e.protocol = CFB
+	// return encryption manager
+	return e
+}
+
+// Encrypt is used to handle encryption of objects
 func (e *EncryptManager) Encrypt(r io.Reader) ([]byte, error) {
 	var out []byte
 	switch e.protocol {
@@ -79,7 +82,7 @@ func (e *EncryptManager) Encrypt(r io.Reader) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		// set encryptd data output
+		// set encrypted data output
 		out = encryptedData
 		// set gcm decrypt params
 		e.gcmDecryptParams = &GCMDecryptParams{
@@ -93,7 +96,7 @@ func (e *EncryptManager) Encrypt(r io.Reader) ([]byte, error) {
 		}
 		out = encryptedData
 	default:
-		return nil, errors.New("invalid encryption method, must be one of aes256-gcm or aes256-cfb")
+		return nil, fmt.Errorf("invalid invocation\nMust be one of\nAES256-GCM: EncryptManager::WithGCM::Encrypt\nAES256-CFB: EncryptManager::WithCFB:Encrypt")
 	}
 	return out, nil
 }
@@ -183,12 +186,20 @@ func (e *EncryptManager) RetrieveGCMDecryptionParameters() ([]byte, error) {
 }
 
 // Decrypt is used to handle decryption of the io.Reader
-// if params is nil, AES256-CFB is assumed
 func (e *EncryptManager) Decrypt(r io.Reader) ([]byte, error) {
-	if e.gcmDecryptParams == nil {
+	switch e.protocol {
+	case CFB:
 		return e.decryptCFB(r)
+	case GCM:
+		return e.decryptGCM(r)
+	case GCM:
+		if e.gcmDecryptParams == nil {
+			return nil, errors.New("no gcm decryption parameters given")
+		}
+		return e.decryptGCM(r)
+	default:
+		return nil, fmt.Errorf("invalid invocation, must be one of\nAES256-GCM: EncryptManager::WithGCM::Decrypt\nAES256-CFB: EncryptManager::WithCFB:Decrypt")
 	}
-	return e.decryptGCM(r)
 }
 
 // DecryptGCM is used to decrypt the given io.Reader using a specified key and nonce

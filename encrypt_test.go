@@ -51,9 +51,9 @@ func Test_EncryptManager_AES256_GCM(t *testing.T) {
 	)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := NewEncryptManager(tt.fields.passphrase, GCM, nil)
+			e := NewEncryptManager(tt.fields.passphrase)
 			// encrypt
-			encryptedData, err := e.Encrypt(tt.args.r)
+			encryptedData, err := e.WithGCM(nil).Encrypt(tt.args.r)
 			if (err != nil) != tt.wantEncryptErr {
 				t.Fatalf("Encrypt err = %v, wantErr %v", err, tt.wantEncryptErr)
 			}
@@ -95,8 +95,8 @@ func Test_EncryptManager_AES256_GCM(t *testing.T) {
 				return
 			}
 			// create our CFB decrypter to parse the gcm data
-			e = NewEncryptManager(tt.fields.passphrase, CFB, nil)
-			decryptedGCMData, err := e.Decrypt(bytes.NewReader(encryptedGCMData))
+			e = NewEncryptManager(tt.fields.passphrase)
+			decryptedGCMData, err := e.WithCFB().Decrypt(bytes.NewReader(encryptedGCMData))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -107,8 +107,8 @@ func Test_EncryptManager_AES256_GCM(t *testing.T) {
 			// retrieve hex encoded cipher
 			encodedCipher := strings.Split(parsedGCMData[1], "\t")[1]
 			// reinstantiate EncryptManager to decrypt our GCM encrypted data
-			e = NewEncryptManager(tt.fields.passphrase, GCM, &GCMDecryptParams{CipherKey: encodedCipher, Nonce: encodedNonce})
-			decrypted, err = e.Decrypt(bytes.NewReader(encryptedData))
+			e = NewEncryptManager(tt.fields.passphrase)
+			decrypted, err = e.WithGCM(&GCMDecryptParams{CipherKey: encodedCipher, Nonce: encodedNonce}).Decrypt(bytes.NewReader(encryptedData))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -161,7 +161,7 @@ func Test_EncryptManager_AES256_CFB(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := NewEncryptManager(tt.fields.passphrase, CFB, nil)
+			e := NewEncryptManager(tt.fields.passphrase)
 
 			// encrypt
 			dataToDecrypt, err := e.Encrypt(tt.args.r)
@@ -175,7 +175,7 @@ func Test_EncryptManager_AES256_CFB(t *testing.T) {
 				dataToDecrypt = []byte("somesillyfakedatatotesthello12345678910111213141")
 			}
 			// decrypt
-			decrypted, err := e.Decrypt(bytes.NewReader(dataToDecrypt))
+			decrypted, err := e.WithCFB().Decrypt(bytes.NewReader(dataToDecrypt))
 			if err != nil {
 				t.Fatal(err)
 			}
