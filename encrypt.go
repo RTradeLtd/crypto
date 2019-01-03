@@ -49,9 +49,11 @@ type GCMDecryptParams struct {
 }
 
 // NewEncryptManager creates a new EncryptManager
+// Default is CFB
 func NewEncryptManager(passphrase string) *EncryptManager {
 	return &EncryptManager{
-		passphrase: []byte(passphrase)}
+		passphrase: []byte(passphrase),
+		protocol:   CFB}
 }
 
 // WithGCM is used setup, and return EncryptManager for use with AES256-GCM
@@ -62,14 +64,6 @@ func (e *EncryptManager) WithGCM(params *GCMDecryptParams) *EncryptManager {
 	// set decryption parameters
 	e.gcmDecryptParams = params
 	// return
-	return e
-}
-
-// WithCFB is used to setup, and return EncryptManager for use with AES256-CFB
-func (e *EncryptManager) WithCFB() *EncryptManager {
-	// set CFB protocol
-	e.protocol = CFB
-	// return encryption manager
 	return e
 }
 
@@ -96,7 +90,7 @@ func (e *EncryptManager) Encrypt(r io.Reader) ([]byte, error) {
 		}
 		out = encryptedData
 	default:
-		return nil, fmt.Errorf("invalid invocation\nMust be one of\nAES256-GCM: EncryptManager::WithGCM::Encrypt\nAES256-CFB: EncryptManager::WithCFB:Encrypt")
+		return nil, fmt.Errorf("no protocol specified")
 	}
 	return out, nil
 }

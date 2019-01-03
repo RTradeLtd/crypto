@@ -30,7 +30,7 @@ arguments. For example:
 				log.Fatal("no passphrase provided - use the '--passphrase' flag")
 			}
 
-			decrypt := crypto.NewEncryptManager(*pwd, crypto.CFB, nil)
+			decrypt := crypto.NewEncryptManager(*pwd)
 			for i := 2; i < len(os.Args); i++ {
 				f, err := os.Open(os.Args[i])
 				if err != nil {
@@ -65,7 +65,7 @@ arguments. For example:
 				log.Fatal("no passphrase provided in TEMPORAL_PASSPHRASE")
 			}
 
-			decrypt := crypto.NewEncryptManager(p, crypto.CFB, nil)
+			decrypt := crypto.NewEncryptManager(p)
 			for i := 2; i < len(os.Args); i++ {
 				f, err := os.Open(os.Args[i])
 				if err != nil {

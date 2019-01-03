@@ -96,7 +96,7 @@ func Test_EncryptManager_AES256_GCM(t *testing.T) {
 			}
 			// create our CFB decrypter to parse the gcm data
 			e = NewEncryptManager(tt.fields.passphrase)
-			decryptedGCMData, err := e.WithCFB().Decrypt(bytes.NewReader(encryptedGCMData))
+			decryptedGCMData, err := e.Decrypt(bytes.NewReader(encryptedGCMData))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -175,7 +175,7 @@ func Test_EncryptManager_AES256_CFB(t *testing.T) {
 				dataToDecrypt = []byte("somesillyfakedatatotesthello12345678910111213141")
 			}
 			// decrypt
-			decrypted, err := e.WithCFB().Decrypt(bytes.NewReader(dataToDecrypt))
+			decrypted, err := e.Decrypt(bytes.NewReader(dataToDecrypt))
 			if err != nil {
 				t.Fatal(err)
 			}
