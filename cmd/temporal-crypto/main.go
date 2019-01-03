@@ -17,8 +17,8 @@ var (
 )
 
 var commands = map[string]cmd.Cmd{
-	"decrypt": {
-		Blurb: "decrypt file encrypted by Temporal",
+	"decrypt-cfb": {
+		Blurb: "decrypt file encrypted by Temporal using AES256-CFB",
 		Description: `Decrypts given files using passphrase set in the '--passphrase' flag. Decrypted 
 files are saved in './<filename>.decrypted'. Multiple files can be provided as 
 arguments. For example:
@@ -55,8 +55,8 @@ arguments. For example:
 			}
 		},
 	},
-	"encrypt": {
-		Blurb: "encrypt file using Temporal's encryption format",
+	"encrypt-cfb": {
+		Blurb: "encrypt file using Temporal's AES256-CFB encryption format",
 		Description: `Encrypts given files using passphrase set in TEMPORAL_PASSPHRASE. Encrypted 
 		files are saved in ./<filename>.encrypted. Multiple files can be provided as arguments.`,
 		Action: func(cfg config.TemporalConfig, args map[string]string) {
