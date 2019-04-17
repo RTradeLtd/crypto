@@ -6,8 +6,7 @@ services:
 
 install:
   - go get -u golang.org/x/lint/golint
-  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-  - dep ensure
+  - GO111MODULE=on go mod vendor
 
 before_script:
   - go vet ./...
