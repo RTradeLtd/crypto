@@ -2,7 +2,7 @@ all: deps install
 
 .PHONY: deps
 deps:
-	dep ensure
+	GO111MODULE=on go mod vendor
 
 .PHONY: install
 install:

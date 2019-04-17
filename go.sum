@@ -1,6 +1,8 @@
 github.com/RTradeLtd/cmd v1.0.4/go.mod h1:GZNP0nplUckIXS6ldanSSPUIhuRhkT5c7YirRR2qNwE=
+github.com/RTradeLtd/cmd v2.0.1+incompatible h1:pwoa4E/yoBBXcLHcnWPp+D4itGg0TgRFAV3yplpa+qY=
 github.com/RTradeLtd/cmd v2.0.1+incompatible/go.mod h1:GZNP0nplUckIXS6ldanSSPUIhuRhkT5c7YirRR2qNwE=
 github.com/RTradeLtd/config v1.0.15/go.mod h1:FVv/bU49cFXT3MRNrPe1VztMBxHQW6MS/DHWqtxNiRc=
+github.com/RTradeLtd/config v2.0.5+incompatible h1:qShcZtJqSBT2MIM7WcD+IRSJhGdJDDmYWgMYk0RTKcg=
 github.com/RTradeLtd/config v2.0.5+incompatible/go.mod h1:FVv/bU49cFXT3MRNrPe1VztMBxHQW6MS/DHWqtxNiRc=
 golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9 h1:mKdxBk7AujPs8kU4m80U72y/zjbZ3UcXC7dClwKbUI0=
 golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
