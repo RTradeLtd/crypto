@@ -5,7 +5,7 @@ Package crypto provides object encryption utilities for for [Temporal](https://g
 It is also available as a command line application:
 
 ```sh
-$> go get github.com/RTradeLtd/crypto/cmd/temporal-crypto
+$> go get github.com/RTradeLtd/crypto/cmd/temporal-crypto/v2
 ```
 
 You can then use the tool by calling `temporal-crypto`:

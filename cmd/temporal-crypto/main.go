@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RTradeLtd/cmd"
-	"github.com/RTradeLtd/config"
-	"github.com/RTradeLtd/crypto"
+	"github.com/RTradeLtd/cmd/v2"
+	"github.com/RTradeLtd/config/v2"
+	"github.com/RTradeLtd/crypto/v2"
 )
 
 var (
