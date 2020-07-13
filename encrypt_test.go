@@ -188,14 +188,8 @@ func Test_EncryptManager_AES256_CFB(t *testing.T) {
 	}
 }
 
-func Test_EncryptManager(t *testing.T) {
-
-	// open a sample file
-	original, err := ioutil.ReadFile("sample_data")
-	if err != nil {
-		t.Errorf("setup failed: %s", err)
-		return
-	}
+func Test_EncryptManagerIpfs(t *testing.T) {
+	original := []byte("Test data to be encrypted")
 
 	type fields struct {
 		passphrase string
@@ -220,7 +214,7 @@ func Test_EncryptManager(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := NewEncryptManager(tt.fields.passphrase, RSA)
+			e := NewEncryptManagerIpfs(tt.fields.passphrase)
 
 			// encrypt
 			dataToDecrypt, err := e.Encrypt(tt.args.r)
@@ -229,8 +223,7 @@ func Test_EncryptManager(t *testing.T) {
 				return
 			}
 
-			// if expecting encryption error
-			// we need to fake some data to decrypt
+			// if expecting encryption error skip rest of the computation
 			if tt.wantErr {
 				return
 			}

@@ -38,8 +38,6 @@ var (
 	GCM Protocol = "AES256-GCM"
 	// CFB allows for usage of AES256-CFB encryption/decryption
 	CFB Protocol = "AES256-CFB"
-	// RSA  IPFS (RSA) keys for encryption/decryption
-	RSA Protocol = "RSA"
 )
 
 // EncryptManager handles file encryption and decryption
@@ -47,6 +45,12 @@ type EncryptManager struct {
 	passphrase       []byte
 	gcmDecryptParams *GCMDecryptParams
 	protocol         Protocol
+}
+
+// EncryptManagerIpfs handles data encryption and decryption for Ipfs keys
+// Currently it supports only RSA keys
+type EncryptManagerIpfs struct {
+	passphrase []byte
 }
 
 // RsaKeyPair is an rsa key pair
@@ -67,6 +71,14 @@ func NewEncryptManager(passphrase string, protocol Protocol) *EncryptManager {
 	return &EncryptManager{
 		passphrase: []byte(passphrase),
 		protocol:   protocol,
+	}
+}
+
+// NewEncryptManagerIpfs creates a new EncryptManager for Ipfs keys
+// Default is RSA
+func NewEncryptManagerIpfs(passphrase string) *EncryptManagerIpfs {
+	return &EncryptManagerIpfs{
+		passphrase: []byte(passphrase),
 	}
 }
 
@@ -99,13 +111,6 @@ func (e *EncryptManager) Encrypt(r io.Reader) ([]byte, error) {
 		}
 	case CFB:
 		encryptedData, err := e.encryptCFB(r)
-		if err != nil {
-			return nil, err
-		}
-		out = encryptedData
-
-	case RSA:
-		encryptedData, err := e.encryptRSA(r)
 		if err != nil {
 			return nil, err
 		}
@@ -189,38 +194,6 @@ func (e *EncryptManager) encryptCFB(r io.Reader) ([]byte, error) {
 	return encrypted, nil
 }
 
-//encryptRSA encrypts given io.Reader using RSA-PCKS
-// the resultant encrypted bytes is returned
-func (e *EncryptManager) encryptRSA(r io.Reader) ([]byte, error) {
-	if r == nil {
-		return nil, errors.New("invalid content provided")
-	}
-
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	rsaKeyPair, err := e.unmarshallRsaKey()
-
-	if err != nil {
-		return nil, err
-	}
-
-	if rsaKeyPair.pubkey.Size() < len(b) {
-		return nil, fmt.Errorf("Can't encrypt file larger than RSA pub key size")
-	}
-
-	ciphertext, err := rsa.EncryptPKCS1v15(rand.Reader, &rsaKeyPair.pubkey, b)
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error from encryption: %s\n", err)
-		return nil, err
-	}
-
-	return ciphertext, nil
-}
-
 // RetrieveGCMDecryptionParameters is used to retrieve GCM cipher and nonce
 // before returning, the cipher and nonce data are formatted, and encrypted
 func (e *EncryptManager) RetrieveGCMDecryptionParameters() ([]byte, error) {
@@ -239,15 +212,10 @@ func (e *EncryptManager) Decrypt(r io.Reader) ([]byte, error) {
 	case CFB:
 		return e.decryptCFB(r)
 	case GCM:
-		return e.decryptGCM(r)
-	case GCM:
 		if e.gcmDecryptParams == nil {
 			return nil, errors.New("no gcm decryption parameters given")
 		}
 		return e.decryptGCM(r)
-
-	case RSA:
-		return e.decryptRSA(r)
 
 	default:
 		return nil, fmt.Errorf("invalid invocation, must be one of\nAES256-GCM: EncryptManager::WithGCM::Decrypt\nAES256-CFB: EncryptManager::WithCFB:Decrypt")
@@ -319,25 +287,55 @@ func (e *EncryptManager) decryptCFB(r io.Reader) ([]byte, error) {
 	return decrypted, nil
 }
 
-//decryptRSA decrypts given io.Reader using RSA-PCKS
-// the resultant decrypted bytes is returned
-func (e *EncryptManager) decryptRSA(r io.Reader) ([]byte, error) {
-
+// Encrypt encrypts given io.Reader using RSA-PCKS
+// the resultant encrypted bytes is returned
+func (e *EncryptManagerIpfs) Encrypt(r io.Reader) ([]byte, error) {
 	if r == nil {
 		return nil, errors.New("invalid content provided")
 	}
 
+	// read raw contents
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
 
+	// unmarshalling RSA key pair
 	rsaKeyPair, err := e.unmarshallRsaKey()
-
 	if err != nil {
 		return nil, err
 	}
 
+	// encrypt contents
+	ciphertext, err := rsa.EncryptPKCS1v15(rand.Reader, &rsaKeyPair.pubkey, b)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error from encryption: %s\n", err)
+		return nil, err
+	}
+
+	return ciphertext, nil
+}
+
+// Decrypt decrypts given io.Reader using RSA-PCKS
+// the resultant decrypted bytes is returned
+func (e *EncryptManagerIpfs) Decrypt(r io.Reader) ([]byte, error) {
+	if r == nil {
+		return nil, errors.New("invalid content provided")
+	}
+
+	// read raw contents
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	// unmarshalling RSA key pair
+	rsaKeyPair, err := e.unmarshallRsaKey()
+	if err != nil {
+		return nil, err
+	}
+
+	// decrypt contents
 	decrypted, err := rsa.DecryptPKCS1v15(rand.Reader, &rsaKeyPair.privateKey, b)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error from decryption: %s\n", err)
@@ -347,25 +345,23 @@ func (e *EncryptManager) decryptRSA(r io.Reader) ([]byte, error) {
 	return decrypted, nil
 }
 
-func (e *EncryptManager) unmarshallRsaKey() (*RsaKeyPair, error) {
+func (e *EncryptManagerIpfs) unmarshallRsaKey() (*RsaKeyPair, error) {
 
+	// unmarshalling private key
 	decoded, err := base64.StdEncoding.DecodeString(string(e.passphrase))
-
 	sk, err := ic.UnmarshalPrivateKey(decoded)
 	if err != nil {
 		return nil, fmt.Errorf("Invalid paraphrase is provided - Error %s", err)
 	}
 
+	// parsing private key
 	rawPrivateKey, _ := sk.Raw()
-
 	privk, err := x509.ParsePKCS1PrivateKey(rawPrivateKey)
-
 	if err != nil {
 		return nil, err
 	}
-
 	pubk := privk.PublicKey
-
 	rsaKeyPair := &RsaKeyPair{privateKey: *privk, pubkey: pubk}
+
 	return rsaKeyPair, nil
 }
