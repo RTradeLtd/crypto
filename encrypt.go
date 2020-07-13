@@ -67,11 +67,10 @@ type GCMDecryptParams struct {
 
 // NewEncryptManager creates a new EncryptManager
 // Default is CFB
-func NewEncryptManager(passphrase string, protocol Protocol) *EncryptManager {
+func NewEncryptManager(passphrase string) *EncryptManager {
 	return &EncryptManager{
 		passphrase: []byte(passphrase),
-		protocol:   protocol,
-	}
+		protocol:   CFB}
 }
 
 // NewEncryptManagerIpfs creates a new EncryptManager for Ipfs keys
