@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 	"strings"
 
 	ic "github.com/libp2p/go-libp2p-core/crypto"
@@ -309,8 +308,7 @@ func (e *EncryptManagerIpfs) Encrypt(r io.Reader) ([]byte, error) {
 	// using sha512 is safer than sha256, but should also be faster on 64bit platforms
 	ciphertext, err := rsa.EncryptOAEP(sha512.New(), rand.Reader, &rsaKeyPair.pubkey, b, []byte(""))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error from encryption: %s\n", err)
-		return nil, err
+		return nil, fmt.Errorf("Error from encryption - Error %s", err)
 	}
 
 	return ciphertext, nil
@@ -339,8 +337,7 @@ func (e *EncryptManagerIpfs) Decrypt(r io.Reader) ([]byte, error) {
 	// using sha512 as we are also using same for encryption
 	decrypted, err := rsa.DecryptOAEP(sha512.New(), rand.Reader, &rsaKeyPair.privateKey, b, []byte(""))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error from decryption: %s\n", err)
-		return nil, err
+		return nil, fmt.Errorf("Error from decryption - Error %s", err)
 	}
 
 	return decrypted, nil
