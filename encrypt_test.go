@@ -2,7 +2,6 @@ package crypto
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/hex"
 
 	"io"
@@ -108,7 +107,7 @@ func Test_EncryptManager_AES256_GCM(t *testing.T) {
 			encodedNonce := strings.Split(parsedGCMData[0], "\t")[1]
 			// retrieve hex encoded cipher
 			encodedCipher := strings.Split(parsedGCMData[1], "\t")[1]
-			// reinstantiate EncryptManager to decrypt our GCM encrypted data
+			// re-instantiate EncryptManager to decrypt our GCM encrypted data
 			e = NewEncryptManager(tt.fields.passphrase)
 			decrypted, err = e.WithGCM(&GCMDecryptParams{CipherKey: encodedCipher, Nonce: encodedNonce}).Decrypt(bytes.NewReader(encryptedData))
 			if err != nil {
@@ -191,9 +190,6 @@ func Test_EncryptManager_AES256_CFB(t *testing.T) {
 
 func Test_EncryptManagerIpfs(t *testing.T) {
 	original := []byte("Test data to be encrypted")
-	// invalid data as its larger than rsa key size
-	invalidData := make([]byte, 10000)
-	rand.Read(invalidData)
 
 	type fields struct {
 		passphrase string
@@ -215,8 +211,7 @@ func Test_EncryptManagerIpfs(t *testing.T) {
 		{"1", fields{ipfsKey}, args{bytes.NewReader(original)}, original, false},
 		{"2", fields{ipfsKey}, args{bytes.NewReader(original)}, original, false},
 		{"3", fields{ipfsKey}, args{nil}, []byte{}, true},
-		{"4", fields{ipfsKey}, args{bytes.NewReader(invalidData)}, invalidData, true},
-		{"5", fields{invalidIpfsKey}, args{nil}, []byte{}, true},
+		{"4", fields{invalidIpfsKey}, args{nil}, []byte{}, true},
 	}
 
 	for _, tt := range tests {
@@ -224,7 +219,7 @@ func Test_EncryptManagerIpfs(t *testing.T) {
 			e := NewEncryptManagerIpfs(tt.fields.passphrase)
 
 			// encrypt
-			dataToDecrypt, err := e.Encrypt(tt.args.r)
+			dataToDecrypt, cipherParaphrase, err := e.Encrypt(tt.args.r)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Encrypt error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -232,16 +227,11 @@ func Test_EncryptManagerIpfs(t *testing.T) {
 
 			// if expecting encryption error
 			if tt.wantErr {
-				if tt.args.r == nil {
-					// if data provided is nil
-					dataToDecrypt = nil
-				} else {
-					// if data provided is invalid, we need to fake some data to decrypt
-					dataToDecrypt = []byte("somesillyfakedatatotesthello12345678910111213141")
-				}
+				dataToDecrypt = []byte("somesillyfakedatatotesthello12345678910111213141")
+				cipherParaphrase = nil
 			}
 			// decrypt
-			decrypted, err := e.Decrypt(bytes.NewReader(dataToDecrypt))
+			decrypted, err := e.Decrypt(bytes.NewReader(dataToDecrypt), cipherParaphrase)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Decrypt error = %v, wantErr %v", err, tt.wantErr)
 				return
