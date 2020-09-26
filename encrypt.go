@@ -4,7 +4,10 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha512"
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -12,6 +15,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	ic "github.com/libp2p/go-libp2p-core/crypto"
 	"golang.org/x/crypto/pbkdf2"
 )
 
@@ -20,9 +24,10 @@ const (
 	// however please keep in mind these are the settings that Temporal uses.
 	// thus if you want to decrypt a file which was encrypted by our Temporal node, you must
 	// ensure that the settings match as foillows: keylen = 32, saltlen = 32, nonceSize = 24
-	keylen    = 32
-	saltlen   = 32
-	nonceSize = 24
+	keylen                 = 32
+	saltlen                = 32
+	nonceSize              = 24
+	randomParaphraseLength = 32
 )
 
 // Protocol is used to configure encryption/decryption methods
@@ -42,6 +47,19 @@ type EncryptManager struct {
 	protocol         Protocol
 }
 
+// EncryptManagerIpfs handles data encryption and decryption using IPFS keys
+// Currently it supports only RSA keys & uses Hybrid encryption/decryption
+// In Hybrid encryption/decryption, data is encrypted using both Symmetric & Asymmetric Ciphers
+type EncryptManagerIpfs struct {
+	ipfsKey []byte
+}
+
+// RsaKeyPair is an rsa key pair
+type RsaKeyPair struct {
+	privateKey rsa.PrivateKey
+	pubkey     rsa.PublicKey
+}
+
 // GCMDecryptParams is used to configure decryption for AES256-GCM
 type GCMDecryptParams struct {
 	CipherKey string
@@ -54,6 +72,14 @@ func NewEncryptManager(passphrase string) *EncryptManager {
 	return &EncryptManager{
 		passphrase: []byte(passphrase),
 		protocol:   CFB}
+}
+
+// NewEncryptManagerIpfs creates a new EncryptManager for Ipfs keys
+// Default is RSA
+func NewEncryptManagerIpfs(ipfsKey string) *EncryptManagerIpfs {
+	return &EncryptManagerIpfs{
+		ipfsKey: []byte(ipfsKey),
+	}
 }
 
 // WithGCM is used setup, and return EncryptManager for use with AES256-GCM
@@ -89,6 +115,7 @@ func (e *EncryptManager) Encrypt(r io.Reader) ([]byte, error) {
 			return nil, err
 		}
 		out = encryptedData
+
 	default:
 		return nil, fmt.Errorf("no protocol specified")
 	}
@@ -185,12 +212,11 @@ func (e *EncryptManager) Decrypt(r io.Reader) ([]byte, error) {
 	case CFB:
 		return e.decryptCFB(r)
 	case GCM:
-		return e.decryptGCM(r)
-	case GCM:
 		if e.gcmDecryptParams == nil {
 			return nil, errors.New("no gcm decryption parameters given")
 		}
 		return e.decryptGCM(r)
+
 	default:
 		return nil, fmt.Errorf("invalid invocation, must be one of\nAES256-GCM: EncryptManager::WithGCM::Decrypt\nAES256-CFB: EncryptManager::WithCFB:Decrypt")
 	}
@@ -259,4 +285,93 @@ func (e *EncryptManager) decryptCFB(r io.Reader) ([]byte, error) {
 	stream.XORKeyStream(decrypted, raw[aes.BlockSize:])
 
 	return decrypted, nil
+}
+
+// Encrypt encrypts given io.Reader using AES-CFB & encrypt paraphrase with RSA-PCKS
+// the resultant encrypted data & encrypted paraphrase bytes are returned
+func (e *EncryptManagerIpfs) Encrypt(r io.Reader) ([]byte, []byte, error) {
+
+	// Generating random paraphrase to be used in AES-CFB
+	paraphraseForCipher := randomParaphrase()
+
+	// Encrypting data using AES-CFB cipher
+	dataEncryptor := NewEncryptManager(paraphraseForCipher)
+	encryptedData, err := dataEncryptor.Encrypt(r)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Error from encryption - Error %s", err)
+	}
+
+	// unmarshalling RSA key pair
+	rsaKeyPair, err := e.unmarshallRsaKey()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// encrypt paraphrase
+	// using sha512 is safer than sha256, but should also be faster on 64bit platforms
+	cipherParaphrase, err := rsa.EncryptOAEP(sha512.New(), rand.Reader, &rsaKeyPair.pubkey, []byte(paraphraseForCipher), []byte(""))
+	if err != nil {
+		return nil, nil, fmt.Errorf("Error from encryption - Error %s", err)
+	}
+
+	return encryptedData, cipherParaphrase, nil
+}
+
+// Decrypt decrypts given io.Reader using AES-CFB & cipherParaphrase using RSA-PCKS
+// the resultant decrypted bytes is returned
+func (e *EncryptManagerIpfs) Decrypt(r io.Reader, cipherParaphrase []byte) ([]byte, error) {
+	if cipherParaphrase == nil {
+		return nil, errors.New("invalid cipher paraphrase provided")
+	}
+
+	// unmarshalling RSA key pair
+	rsaKeyPair, err := e.unmarshallRsaKey()
+	if err != nil {
+		return nil, err
+	}
+
+	// decrypt paraphrase
+	// using sha512 as we are also using same for encryption
+	paraphraseForCipher, err := rsa.DecryptOAEP(sha512.New(), rand.Reader, &rsaKeyPair.privateKey, cipherParaphrase, []byte(""))
+	if err != nil {
+		return nil, fmt.Errorf("Error from decryption - Error %s", err)
+	}
+
+	// Decrypting data using AES-CFB cipher
+	dataDecryptor := NewEncryptManager(string(paraphraseForCipher))
+	decryptedData, err := dataDecryptor.Decrypt(r)
+	if err != nil {
+		return nil, fmt.Errorf("Error from decryption - Error %s", err)
+	}
+
+	return decryptedData, nil
+}
+
+func (e *EncryptManagerIpfs) unmarshallRsaKey() (*RsaKeyPair, error) {
+
+	// unmarshalling private key
+	decoded, err := base64.StdEncoding.DecodeString(string(e.ipfsKey))
+	sk, err := ic.UnmarshalPrivateKey(decoded)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid paraphrase is provided - Error %s", err)
+	}
+
+	// parsing private key
+	rawPrivateKey, _ := sk.Raw()
+	privk, err := x509.ParsePKCS1PrivateKey(rawPrivateKey)
+	if err != nil {
+		return nil, err
+	}
+	pubk := privk.PublicKey
+	rsaKeyPair := &RsaKeyPair{privateKey: *privk, pubkey: pubk}
+
+	return rsaKeyPair, nil
+}
+
+func randomParaphrase() string {
+	buff := make([]byte, randomParaphraseLength)
+	rand.Read(buff)
+	str := base64.StdEncoding.EncodeToString(buff)
+	// Base 64 can be longer than randomParaphraseLength
+	return str[:randomParaphraseLength]
 }
